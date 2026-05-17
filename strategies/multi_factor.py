@@ -14,20 +14,17 @@ def _cross_sectional_zscore(df: pd.DataFrame) -> pd.DataFrame:
 
 class MultiFactorStrategy(Strategy):
     """
-    Monthly-rebalanced long-short factor model combining three factors,
-    all cross-sectionally z-scored and equally blended:
-      - Momentum (12-1 month return), weight 0.5
-      - Low Volatility (negative 20-day realized vol), weight 0.3
-      - Short-term Reversal (negative 1-month return), weight 0.2
+    Monthly-rebalanced long-short factor model combining three factors.
+    Blend is customizable via params dict (momentum_wt, lowvol_wt); reversal_wt = 1 - sum.
+    Defaults: momentum=0.5, low_vol=0.3, reversal=0.2.
 
-    Long top quintile, short bottom quintile.
+    Long top quintile, short bottom quintile. All factors cross-sectionally z-scored.
 
     Note: P/B and ROE omitted — yfinance fundamental data is unreliable
     for backtesting. Low-vol (Ang et al. 2006) and reversal (Jegadeesh 1990)
     are academically validated replacements.
     """
 
-    FACTOR_WEIGHTS = {"momentum": 0.5, "low_vol": 0.3, "reversal": 0.2}
     param_grid = {"momentum_wt": [0.33, 0.5, 0.7], "lowvol_wt": [0.1, 0.3, 0.5]}
 
     def __init__(self, config: BacktestConfig, params: dict = None):
@@ -36,6 +33,10 @@ class MultiFactorStrategy(Strategy):
         momentum_wt = _p.get("momentum_wt", 0.5)
         lowvol_wt = _p.get("lowvol_wt", 0.3)
         reversal_wt = round(1.0 - momentum_wt - lowvol_wt, 10)
+        if reversal_wt < 0:
+            raise ValueError(
+                f"Invalid params: momentum_wt={momentum_wt} + lowvol_wt={lowvol_wt} > 1.0"
+            )
         self.factor_weights = {"momentum": momentum_wt, "low_vol": lowvol_wt, "reversal": reversal_wt}
 
     def generate_signals(self, barrier: LookaheadBarrier) -> pd.DataFrame:
