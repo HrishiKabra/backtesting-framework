@@ -61,3 +61,31 @@ def test_momentum_weights_bounded(synthetic_data, basic_config):
     signals = strategy.generate_signals(barrier)
     assert (signals >= -1.0).all().all()
     assert (signals <= 1.0).all().all()
+
+
+# --- BollingerStrategy tests (Task 11) ---
+
+from strategies.mean_reversion import BollingerStrategy
+
+
+def test_bollinger_signals_shape(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = BollingerStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert signals.shape == (len(synthetic_data), len(basic_config.tickers))
+    assert not signals.isnull().any().any()
+
+
+def test_bollinger_warmup_is_zero(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = BollingerStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    # First 20 rows have no rolling window — should be 0
+    assert (signals.iloc[:20] == 0.0).all().all()
+
+
+def test_bollinger_weights_bounded(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = BollingerStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals.abs() <= 0.15).all().all()  # max weight per position is 0.1
