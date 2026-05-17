@@ -28,10 +28,19 @@ from core.engine import LookaheadBarrier
 
 
 class BuyAndHoldSPY(Strategy):
-    """Validation strategy: 100% long SPY at all times."""
+    """
+    Reference strategy: 100% long SPY at all times.
+
+    NOTE: Not used by run_validation() because running this through
+    BacktestEngine causes daily rebalancing — target_shares = 1.0 * NAV / price
+    changes every day as NAV moves, generating orders on every bar. That is
+    constant-weight rebalancing (not buy-and-hold) and produces rebalancing
+    alpha in trending markets. run_validation() uses Portfolio + CostModel
+    directly for a true single-purchase test.
+    """
     def generate_signals(self, barrier: LookaheadBarrier) -> pd.DataFrame:
         data = barrier.get_shifted_data()
-        close = data["Close"].ffill()  # use .ffill() not fillna(method="ffill")
+        close = data["Close"].ffill()
         signals = pd.DataFrame(0.0, index=close.index, columns=close.columns)
         if "SPY" in signals.columns:
             signals["SPY"] = 1.0
