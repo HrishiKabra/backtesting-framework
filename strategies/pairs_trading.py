@@ -122,10 +122,13 @@ class PairsTradingStrategy(Strategy):
                     continue
 
                 # Stop loss
+                stopped = False
                 if current_sig > 0 and z <= -self.z_stop:
                     current_sig = 0.0
+                    stopped = True
                 elif current_sig < 0 and z >= self.z_stop:
                     current_sig = 0.0
+                    stopped = True
 
                 # Exit
                 if current_sig > 0 and z >= self.z_exit:
@@ -133,8 +136,8 @@ class PairsTradingStrategy(Strategy):
                 elif current_sig < 0 and z <= self.z_exit:
                     current_sig = 0.0
 
-                # Entry
-                if current_sig == 0.0:
+                # Entry — only if not stopped on this bar
+                if not stopped and current_sig == 0.0:
                     if z < -self.z_entry:
                         current_sig = 1.0   # long spread
                     elif z > self.z_entry:

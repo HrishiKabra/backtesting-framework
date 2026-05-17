@@ -57,10 +57,13 @@ class BollingerStrategy(Strategy):
                 sig = current_signal[ticker]
 
                 # Stop-loss: exit if price hits 3σ stop
+                stopped = False
                 if sig > 0 and price < sl_lo:
                     sig = 0.0
+                    stopped = True
                 elif sig < 0 and price > sl_hi:
                     sig = 0.0
+                    stopped = True
 
                 # Exit: price crosses through mean
                 if sig > 0 and price >= mean:
@@ -68,8 +71,8 @@ class BollingerStrategy(Strategy):
                 elif sig < 0 and price <= mean:
                     sig = 0.0
 
-                # Entry
-                if sig == 0.0:
+                # Entry — only if not stopped on this bar
+                if not stopped and sig == 0.0:
                     if price < lb:
                         sig = 0.1
                     elif price > ub:

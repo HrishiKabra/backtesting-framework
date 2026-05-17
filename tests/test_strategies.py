@@ -123,16 +123,26 @@ def test_pairs_training_period_is_zero(synthetic_data, basic_config):
 
 
 def test_pairs_hedge_ratio_baked_in(synthetic_data, basic_config):
-    """When long spread, AAPL and MSFT weights should have opposite signs."""
+    """When long/short spread, A and B weights must have opposite signs."""
+    # Construct explicitly cointegrated pair: AAPL = 1.5 * MSFT + noise
+    rng = np.random.default_rng(42)
+    n = len(synthetic_data)
+    x = 100 + np.cumsum(rng.normal(0, 1, n))
+    y = 1.5 * x + rng.normal(0, 0.5, n)
+
+    coint_data = synthetic_data.copy()
+    coint_data[("Close", "AAPL")] = y
+    coint_data[("Close", "MSFT")] = x
+
     pairs = [("AAPL", "MSFT")]
-    barrier = LookaheadBarrier(synthetic_data)
+    barrier = LookaheadBarrier(coint_data)
     strategy = PairsTradingStrategy(basic_config, pairs=pairs, training_days=100)
     signals = strategy.generate_signals(barrier)
-    # Find a day where signals are non-zero
+
     active = signals[(signals != 0).any(axis=1)]
-    if len(active) > 0:
-        row = active.iloc[0]
-        aapl_w = row.get("AAPL", 0.0)
-        msft_w = row.get("MSFT", 0.0)
-        if aapl_w != 0.0 and msft_w != 0.0:
-            assert np.sign(aapl_w) != np.sign(msft_w)
+    assert len(active) > 0, "Strategy should generate signals on cointegrated data"
+    row = active.iloc[0]
+    aapl_w = row.get("AAPL", 0.0)
+    msft_w = row.get("MSFT", 0.0)
+    assert aapl_w != 0.0 and msft_w != 0.0
+    assert np.sign(aapl_w) != np.sign(msft_w)
