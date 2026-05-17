@@ -32,3 +32,32 @@ def test_signals_contain_no_nans(synthetic_data):
     strategy = ConcreteStrategy()
     signals = strategy.generate_signals(barrier)
     assert not signals.isnull().any().any()
+
+
+# --- MomentumStrategy tests (Task 10) ---
+
+from strategies.momentum import MomentumStrategy
+
+
+def test_momentum_signals_shape(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MomentumStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert signals.shape == (len(synthetic_data), len(basic_config.tickers))
+    assert not signals.isnull().any().any()
+
+
+def test_momentum_warmup_period_is_zero(synthetic_data, basic_config):
+    """First 252 rows must be 0 (warmup period — no 12-month history yet)."""
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MomentumStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals.iloc[:252] == 0.0).all().all()
+
+
+def test_momentum_weights_bounded(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MomentumStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals >= -1.0).all().all()
+    assert (signals <= 1.0).all().all()
