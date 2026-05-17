@@ -42,7 +42,7 @@ class MultiFactorStrategy(Strategy):
         low_vol_raw = -close.pct_change().rolling(20).std()
         reversal_raw = -ret_1m
 
-        signals = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+        signals = pd.DataFrame(np.nan, index=close.index, columns=close.columns)
         month_ends = close.resample("BME").last().index
 
         for date in month_ends:
@@ -84,8 +84,8 @@ class MultiFactorStrategy(Strategy):
                 if t in signals.columns:
                     signals.loc[date, t] = short_weight
 
-        # Forward-fill between rebalance dates, zero warmup
-        signals = signals.replace(0.0, np.nan).ffill().fillna(0.0)
+        # Forward-fill between rebalance dates (NaN init preserves rebalance-date zeros).
+        signals = signals.ffill().fillna(0.0)
         signals.iloc[:252] = 0.0
 
         return signals

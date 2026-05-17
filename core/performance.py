@@ -15,11 +15,11 @@ class PerformanceAnalyzer:
         ann_return = (1 + total_return) ** (252 / n_days) - 1
         ann_vol = max(r.std() * np.sqrt(252), 1e-8)
 
-        negative_r = r[r < 0]
-        if len(negative_r) > 0:
-            downside_vol = max(negative_r.std() * np.sqrt(252), 1e-8)
-        else:
-            downside_vol = 1e-8
+        # Sortino downside deviation: RMS of min(r, 0) across all days.
+        # Uses all trading days (positive return days contribute 0), matching the
+        # textbook definition from Sortino & van der Meer (1991).
+        downside_returns = np.minimum(r.values, 0.0)
+        downside_vol = max(np.sqrt((downside_returns ** 2).mean()) * np.sqrt(252), 1e-8)
 
         running_max = self.nav.cummax()
         drawdown = self.nav / running_max - 1

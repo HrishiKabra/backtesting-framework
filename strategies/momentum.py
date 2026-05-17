@@ -22,7 +22,7 @@ class MomentumStrategy(Strategy):
         data = barrier.get_shifted_data()
         close = data["Close"].ffill()
 
-        signals = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+        signals = pd.DataFrame(np.nan, index=close.index, columns=close.columns)
 
         # 12-month return (252 days) and 1-month return (21 days)
         ret_12m = close.pct_change(252)
@@ -57,8 +57,9 @@ class MomentumStrategy(Strategy):
                 if ticker in signals.columns:
                     signals.loc[date, ticker] = short_weight
 
-        # Forward-fill signals between rebalance dates
-        signals = signals.replace(0.0, np.nan)
+        # Forward-fill signals between rebalance dates.
+        # Initializing to NaN (not 0.0) ensures rebalance-date zeros for neutral
+        # tickers are preserved through ffill — they don't inherit the prior month.
         signals = signals.ffill().fillna(0.0)
 
         # Zero out warmup period (need 252 days for 12-month return)
