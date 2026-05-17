@@ -46,9 +46,12 @@ class PairsTradingStrategy(Strategy):
         ("NVDA", "AMD"), ("WMT", "HD"),
     ]
 
+    param_grid = {"entry_z": [1.5, 2.0, 2.5, 3.0], "exit_z": [0.0, 0.5]}
+
     def __init__(
         self,
         config: BacktestConfig,
+        params: dict = None,
         pairs: List[Tuple[str, str]] = None,
         training_days: int = 504,  # ~2 years
         z_entry: float = 2.0,
@@ -56,11 +59,12 @@ class PairsTradingStrategy(Strategy):
         z_stop: float = 3.0,
         spread_window: int = 20,
     ):
+        _p = params or {}
         self.config = config
         self.pairs = pairs if pairs is not None else self.DEFAULT_PAIRS
         self.training_days = training_days
-        self.z_entry = z_entry
-        self.z_exit = z_exit
+        self.z_entry = _p.get("entry_z", z_entry)
+        self.z_exit = _p.get("exit_z", z_exit)
         self.z_stop = z_stop
         self.spread_window = spread_window
 

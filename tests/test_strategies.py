@@ -195,6 +195,27 @@ def test_pairs_hedge_ratio_baked_in(synthetic_data, basic_config):
     assert np.sign(aapl_w) != np.sign(msft_w)
 
 
+def test_pairs_accepts_custom_params(basic_config, synthetic_data):
+    """params dict correctly overrides entry_z and exit_z."""
+    strategy = PairsTradingStrategy(basic_config, params={"entry_z": 1.5, "exit_z": 0.5})
+    assert strategy.z_entry == 1.5
+    assert strategy.z_exit == 0.5
+
+
+def test_pairs_defaults_unchanged_without_params(basic_config):
+    """PairsTradingStrategy(config) uses z_entry=2.0, z_exit=0.0 defaults."""
+    strategy = PairsTradingStrategy(basic_config)
+    assert strategy.z_entry == 2.0
+    assert strategy.z_exit == 0.0
+
+
+def test_pairs_has_param_grid():
+    """param_grid class attribute exists with correct keys."""
+    assert hasattr(PairsTradingStrategy, "param_grid")
+    assert "entry_z" in PairsTradingStrategy.param_grid
+    assert "exit_z" in PairsTradingStrategy.param_grid
+
+
 # --- MultiFactorStrategy tests (Task 13) ---
 
 from strategies.multi_factor import MultiFactorStrategy
