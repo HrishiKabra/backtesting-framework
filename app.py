@@ -116,11 +116,13 @@ with tab2:
         st.info("Run a backtest on the Strategy Results tab first to enable Monte Carlo.")
     else:
         n_sims = st.slider("Simulations", min_value=100, max_value=5000, value=1000, step=100)
-        with st.spinner("Running Monte Carlo simulation..."):
-            mc = MonteCarloSimulator(st.session_state["nav"], n_simulations=n_sims)
-            mc.run()
-            bands = mc.percentile_bands()
-            mc_metrics = mc.summary_metrics()
+        mc_key = f"mc_{n_sims}"
+        if mc_key not in st.session_state:
+            with st.spinner("Running Monte Carlo simulation..."):
+                mc = MonteCarloSimulator(st.session_state["nav"], n_simulations=n_sims)
+                mc.run()
+                st.session_state[mc_key] = (mc.percentile_bands(), mc.summary_metrics())
+        bands, mc_metrics = st.session_state[mc_key]
 
         fig, ax = plt.subplots(figsize=(12, 5))
         ax.fill_between(
