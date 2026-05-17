@@ -10,7 +10,7 @@ class BollingerStrategy(Strategy):
     Mean-reversion using Bollinger Bands (20-day rolling mean ± 2σ).
     Long when price < lower band, short when price > upper band.
     Exit when price crosses back through the mean.
-    Stop-loss at ±3σ from entry.
+    Stop-loss at rolling mean ±3σ (trailing stop).
 
     Academic basis: Bollinger (2001) — prices oscillate around a moving
     average; extremes signal reversion opportunities.
@@ -34,9 +34,8 @@ class BollingerStrategy(Strategy):
         stop_lower = rolling_mean - 3.0 * rolling_std
 
         signals = pd.DataFrame(0.0, index=close.index, columns=close.columns)
-        # Track current signal direction and entry prices per ticker
+        # Track current signal direction per ticker
         current_signal = {t: 0.0 for t in close.columns}
-        entry_price = {t: None for t in close.columns}
 
         for i, date in enumerate(close.index):
             if i < self.window:
@@ -60,27 +59,21 @@ class BollingerStrategy(Strategy):
                 # Stop-loss: exit if price hits 3σ stop
                 if sig > 0 and price < sl_lo:
                     sig = 0.0
-                    entry_price[ticker] = None
                 elif sig < 0 and price > sl_hi:
                     sig = 0.0
-                    entry_price[ticker] = None
 
                 # Exit: price crosses through mean
                 if sig > 0 and price >= mean:
                     sig = 0.0
-                    entry_price[ticker] = None
                 elif sig < 0 and price <= mean:
                     sig = 0.0
-                    entry_price[ticker] = None
 
                 # Entry
                 if sig == 0.0:
                     if price < lb:
                         sig = 0.1
-                        entry_price[ticker] = price
                     elif price > ub:
                         sig = -0.1
-                        entry_price[ticker] = price
 
                 current_signal[ticker] = sig
                 signals.loc[date, ticker] = sig

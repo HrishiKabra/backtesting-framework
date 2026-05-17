@@ -88,4 +88,12 @@ def test_bollinger_weights_bounded(synthetic_data, basic_config):
     barrier = LookaheadBarrier(synthetic_data)
     strategy = BollingerStrategy(basic_config)
     signals = strategy.generate_signals(barrier)
-    assert (signals.abs() <= 0.15).all().all()  # max weight per position is 0.1
+    assert (signals.abs() <= 0.1).all().all()
+
+
+def test_bollinger_generates_nonzero_signals(synthetic_data, basic_config):
+    """Strategy must actually fire on 500 days of synthetic data."""
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = BollingerStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals != 0.0).any().any()
