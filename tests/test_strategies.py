@@ -99,6 +99,29 @@ def test_bollinger_generates_nonzero_signals(synthetic_data, basic_config):
     assert (signals != 0.0).any().any()
 
 
+def test_bollinger_accepts_custom_params(synthetic_data, basic_config):
+    """params dict overrides default window and entry_z."""
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = BollingerStrategy(basic_config, params={"window": 10, "entry_z": 1.5})
+    assert strategy.window == 10
+    assert strategy.entry_z == 1.5
+    signals = strategy.generate_signals(barrier)
+    assert not signals.isnull().any().any()
+
+
+def test_bollinger_defaults_unchanged_without_params(synthetic_data, basic_config):
+    """No params → window=20, entry_z=2.0 (existing behavior preserved)."""
+    strategy = BollingerStrategy(basic_config)
+    assert strategy.window == 20
+    assert strategy.entry_z == 2.0
+
+
+def test_bollinger_has_param_grid():
+    assert hasattr(BollingerStrategy, "param_grid")
+    assert "window" in BollingerStrategy.param_grid
+    assert "entry_z" in BollingerStrategy.param_grid
+
+
 # --- PairsTradingStrategy tests (Task 12) ---
 
 from strategies.pairs_trading import PairsTradingStrategy

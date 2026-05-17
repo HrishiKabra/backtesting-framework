@@ -7,19 +7,24 @@ from strategies.base import Strategy
 
 class BollingerStrategy(Strategy):
     """
-    Mean-reversion using Bollinger Bands (20-day rolling mean ± 2σ).
+    Mean-reversion using Bollinger Bands.
     Long when price < lower band, short when price > upper band.
     Exit when price crosses back through the mean.
     Stop-loss at rolling mean ±3σ (trailing stop).
 
-    Academic basis: Bollinger (2001) — prices oscillate around a moving
-    average; extremes signal reversion opportunities.
+    Academic basis: Bollinger (2001).
     """
 
-    def __init__(self, config: BacktestConfig, window: int = 20, n_std: float = 2.0):
+    param_grid = {
+        "window": [10, 15, 20, 25, 30],
+        "entry_z": [1.5, 2.0, 2.5, 3.0],
+    }
+
+    def __init__(self, config: BacktestConfig, params: dict = None):
         self.config = config
-        self.window = window
-        self.n_std = n_std
+        _p = params or {}
+        self.window = _p.get("window", 20)
+        self.entry_z = _p.get("entry_z", 2.0)
 
     def generate_signals(self, barrier: LookaheadBarrier) -> pd.DataFrame:
         data = barrier.get_shifted_data()
@@ -28,13 +33,12 @@ class BollingerStrategy(Strategy):
         rolling_mean = close.rolling(self.window).mean()
         rolling_std = close.rolling(self.window).std()
 
-        upper = rolling_mean + self.n_std * rolling_std
-        lower = rolling_mean - self.n_std * rolling_std
+        upper = rolling_mean + self.entry_z * rolling_std
+        lower = rolling_mean - self.entry_z * rolling_std
         stop_upper = rolling_mean + 3.0 * rolling_std
         stop_lower = rolling_mean - 3.0 * rolling_std
 
         signals = pd.DataFrame(0.0, index=close.index, columns=close.columns)
-        # Track current signal direction per ticker
         current_signal = {t: 0.0 for t in close.columns}
 
         for i, date in enumerate(close.index):
@@ -56,7 +60,6 @@ class BollingerStrategy(Strategy):
 
                 sig = current_signal[ticker]
 
-                # Stop-loss: exit if price hits 3σ stop
                 stopped = False
                 if sig > 0 and price < sl_lo:
                     sig = 0.0
@@ -65,13 +68,11 @@ class BollingerStrategy(Strategy):
                     sig = 0.0
                     stopped = True
 
-                # Exit: price crosses through mean
                 if sig > 0 and price >= mean:
                     sig = 0.0
                 elif sig < 0 and price <= mean:
                     sig = 0.0
 
-                # Entry — only if not stopped on this bar
                 if not stopped and sig == 0.0:
                     if price < lb:
                         sig = 0.1
