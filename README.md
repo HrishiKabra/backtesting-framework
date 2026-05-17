@@ -2,8 +2,6 @@
 
 A vectorized, hybrid backtesting engine built from first principles in Python — no backtrader, zipline, or other framework. Implements four trading strategies with realistic market simulation.
 
-Built as a portfolio piece for quantitative finance roles. Every architectural decision is defensible in a technical interview.
-
 ---
 
 ## Architecture
