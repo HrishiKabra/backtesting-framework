@@ -97,3 +97,42 @@ def test_bollinger_generates_nonzero_signals(synthetic_data, basic_config):
     strategy = BollingerStrategy(basic_config)
     signals = strategy.generate_signals(barrier)
     assert (signals != 0.0).any().any()
+
+
+# --- PairsTradingStrategy tests (Task 12) ---
+
+from strategies.pairs_trading import PairsTradingStrategy
+
+
+def test_pairs_signals_shape(synthetic_data, basic_config):
+    pairs = [("AAPL", "MSFT")]
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = PairsTradingStrategy(basic_config, pairs=pairs)
+    signals = strategy.generate_signals(barrier)
+    assert signals.shape[0] == len(synthetic_data)
+    assert not signals.isnull().any().any()
+
+
+def test_pairs_training_period_is_zero(synthetic_data, basic_config):
+    """First 252 rows must be 0 — training period."""
+    pairs = [("AAPL", "MSFT")]
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = PairsTradingStrategy(basic_config, pairs=pairs, training_days=252)
+    signals = strategy.generate_signals(barrier)
+    assert (signals.iloc[:252] == 0.0).all().all()
+
+
+def test_pairs_hedge_ratio_baked_in(synthetic_data, basic_config):
+    """When long spread, AAPL and MSFT weights should have opposite signs."""
+    pairs = [("AAPL", "MSFT")]
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = PairsTradingStrategy(basic_config, pairs=pairs, training_days=100)
+    signals = strategy.generate_signals(barrier)
+    # Find a day where signals are non-zero
+    active = signals[(signals != 0).any(axis=1)]
+    if len(active) > 0:
+        row = active.iloc[0]
+        aapl_w = row.get("AAPL", 0.0)
+        msft_w = row.get("MSFT", 0.0)
+        if aapl_w != 0.0 and msft_w != 0.0:
+            assert np.sign(aapl_w) != np.sign(msft_w)
