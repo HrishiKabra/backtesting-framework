@@ -63,6 +63,30 @@ def test_momentum_weights_bounded(synthetic_data, basic_config):
     assert (signals <= 1.0).all().all()
 
 
+def test_momentum_accepts_custom_params(synthetic_data, basic_config):
+    """params={'lookback_months': 6} → warmup is 126 days (6*21), not 252."""
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MomentumStrategy(basic_config, params={"lookback_months": 6, "skip_months": 1})
+    assert strategy.lookback_days == 126
+    assert strategy.skip_days == 21
+    signals = strategy.generate_signals(barrier)
+    assert (signals.iloc[:126] == 0.0).all().all()
+    assert not signals.isnull().any().any()
+
+
+def test_momentum_defaults_unchanged_without_params(basic_config):
+    """No params → lookback_days=252, skip_days=21."""
+    strategy = MomentumStrategy(basic_config)
+    assert strategy.lookback_days == 252
+    assert strategy.skip_days == 21
+
+
+def test_momentum_has_param_grid():
+    assert hasattr(MomentumStrategy, "param_grid")
+    assert "lookback_months" in MomentumStrategy.param_grid
+    assert "skip_months" in MomentumStrategy.param_grid
+
+
 # --- BollingerStrategy tests (Task 11) ---
 
 from strategies.mean_reversion import BollingerStrategy

@@ -8,15 +8,21 @@ from strategies.base import Strategy
 class MomentumStrategy(Strategy):
     """
     Cross-sectional momentum: monthly rebalance, long top quintile,
-    short bottom quintile ranked by 12-minus-1 month return.
+    short bottom quintile ranked by lookback-minus-skip month return.
 
-    Academic basis: Jegadeesh & Titman (1993) — stocks with strong 12-month
-    returns continue to outperform over the next 3-12 months. Skipping the
-    most recent month avoids short-term mean-reversion.
+    Academic basis: Jegadeesh & Titman (1993).
     """
 
-    def __init__(self, config: BacktestConfig):
+    param_grid = {
+        "lookback_months": [6, 9, 12, 15],
+        "skip_months": [1, 2],
+    }
+
+    def __init__(self, config: BacktestConfig, params: dict = None):
         self.config = config
+        _p = params or {}
+        self.lookback_days = _p.get("lookback_months", 12) * 21
+        self.skip_days = _p.get("skip_months", 1) * 21
 
     def generate_signals(self, barrier: LookaheadBarrier) -> pd.DataFrame:
         data = barrier.get_shifted_data()
@@ -24,12 +30,10 @@ class MomentumStrategy(Strategy):
 
         signals = pd.DataFrame(np.nan, index=close.index, columns=close.columns)
 
-        # 12-month return (252 days) and 1-month return (21 days)
-        ret_12m = close.pct_change(252)
-        ret_1m = close.pct_change(21)
-        momentum = ret_12m - ret_1m  # 12-minus-1 month return
+        ret_lookback = close.pct_change(self.lookback_days)
+        ret_skip = close.pct_change(self.skip_days)
+        momentum = ret_lookback - ret_skip
 
-        # Rebalance on last business day of each month
         month_ends = close.resample("BME").last().index
 
         for date in month_ends:
@@ -37,7 +41,7 @@ class MomentumStrategy(Strategy):
                 continue
             scores = momentum.loc[date].dropna()
             if len(scores) < 5:
-                continue  # need enough stocks to rank
+                continue
 
             n = len(scores)
             quintile_size = max(1, n // 5)
@@ -57,12 +61,7 @@ class MomentumStrategy(Strategy):
                 if ticker in signals.columns:
                     signals.loc[date, ticker] = short_weight
 
-        # Forward-fill signals between rebalance dates.
-        # Initializing to NaN (not 0.0) ensures rebalance-date zeros for neutral
-        # tickers are preserved through ffill — they don't inherit the prior month.
         signals = signals.ffill().fillna(0.0)
-
-        # Zero out warmup period (need 252 days for 12-month return)
-        signals.iloc[:252] = 0.0
+        signals.iloc[:self.lookback_days] = 0.0
 
         return signals
