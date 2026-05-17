@@ -195,7 +195,7 @@ def test_pairs_hedge_ratio_baked_in(synthetic_data, basic_config):
     assert np.sign(aapl_w) != np.sign(msft_w)
 
 
-def test_pairs_accepts_custom_params(basic_config, synthetic_data):
+def test_pairs_accepts_custom_params(basic_config):
     """params dict correctly overrides entry_z and exit_z."""
     strategy = PairsTradingStrategy(basic_config, params={"entry_z": 1.5, "exit_z": 0.5})
     assert strategy.z_entry == 1.5
