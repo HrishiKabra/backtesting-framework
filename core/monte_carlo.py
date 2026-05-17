@@ -23,6 +23,7 @@ class MonteCarloSimulator:
         rng = np.random.default_rng(self.seed)
         returns = self.nav.pct_change().dropna().values
         n = len(returns)
+        assert n == len(self.nav) - 1, "pct_change dropna must yield exactly len(nav)-1 returns"
 
         # Sample with replacement: shape (n, n_simulations)
         sampled = rng.choice(returns, size=(n, self.n_simulations), replace=True)
