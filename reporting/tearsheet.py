@@ -6,7 +6,6 @@ matplotlib.use("Agg")  # non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
-from core.performance import PerformanceAnalyzer
 
 
 class TearsheetGenerator:
