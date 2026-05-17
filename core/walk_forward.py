@@ -36,6 +36,12 @@ class WalkForwardOptimizer:
         ]
         all_combos = self._filter_combos(all_combos)
         windows = self._get_windows(train_years, test_months)
+        if not windows:
+            raise ValueError(
+                f"Data too short ({len(self.data)} rows) for "
+                f"train_years={train_years} ({train_years * 252} days) + "
+                f"test_months={test_months} ({test_months * 21} days)."
+            )
 
         results = []
         for combo in all_combos:
