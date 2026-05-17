@@ -242,3 +242,26 @@ def test_multifactor_weights_bounded(synthetic_data, basic_config):
     signals = strategy.generate_signals(barrier)
     assert (signals >= -1.0).all().all()
     assert (signals <= 1.0).all().all()
+
+
+def test_multifactor_accepts_custom_params(basic_config):
+    """params dict correctly overrides factor weights."""
+    strategy = MultiFactorStrategy(basic_config, params={"momentum_wt": 0.7, "lowvol_wt": 0.1})
+    assert strategy.factor_weights["momentum"] == 0.7
+    assert strategy.factor_weights["low_vol"] == 0.1
+    assert abs(strategy.factor_weights["reversal"] - 0.2) < 1e-9
+
+
+def test_multifactor_defaults_unchanged_without_params(basic_config):
+    """MultiFactorStrategy(config) uses momentum=0.5, low_vol=0.3, reversal=0.2."""
+    strategy = MultiFactorStrategy(basic_config)
+    assert strategy.factor_weights["momentum"] == 0.5
+    assert strategy.factor_weights["low_vol"] == 0.3
+    assert abs(strategy.factor_weights["reversal"] - 0.2) < 1e-9
+
+
+def test_multifactor_has_param_grid():
+    """param_grid class attribute exists with correct keys."""
+    assert hasattr(MultiFactorStrategy, "param_grid")
+    assert "momentum_wt" in MultiFactorStrategy.param_grid
+    assert "lowvol_wt" in MultiFactorStrategy.param_grid

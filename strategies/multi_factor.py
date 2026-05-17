@@ -28,9 +28,15 @@ class MultiFactorStrategy(Strategy):
     """
 
     FACTOR_WEIGHTS = {"momentum": 0.5, "low_vol": 0.3, "reversal": 0.2}
+    param_grid = {"momentum_wt": [0.33, 0.5, 0.7], "lowvol_wt": [0.1, 0.3, 0.5]}
 
-    def __init__(self, config: BacktestConfig):
+    def __init__(self, config: BacktestConfig, params: dict = None):
         self.config = config
+        _p = params or {}
+        momentum_wt = _p.get("momentum_wt", 0.5)
+        lowvol_wt = _p.get("lowvol_wt", 0.3)
+        reversal_wt = round(1.0 - momentum_wt - lowvol_wt, 10)
+        self.factor_weights = {"momentum": momentum_wt, "low_vol": lowvol_wt, "reversal": reversal_wt}
 
     def generate_signals(self, barrier: LookaheadBarrier) -> pd.DataFrame:
         data = barrier.get_shifted_data()
@@ -63,9 +69,9 @@ class MultiFactorStrategy(Strategy):
 
             # Combined score
             combined = (
-                zscored["momentum"] * self.FACTOR_WEIGHTS["momentum"]
-                + zscored["low_vol"] * self.FACTOR_WEIGHTS["low_vol"]
-                + zscored["reversal"] * self.FACTOR_WEIGHTS["reversal"]
+                zscored["momentum"] * self.factor_weights["momentum"]
+                + zscored["low_vol"] * self.factor_weights["low_vol"]
+                + zscored["reversal"] * self.factor_weights["reversal"]
             )
 
             n = len(combined)
