@@ -146,3 +146,31 @@ def test_pairs_hedge_ratio_baked_in(synthetic_data, basic_config):
     msft_w = row.get("MSFT", 0.0)
     assert aapl_w != 0.0 and msft_w != 0.0
     assert np.sign(aapl_w) != np.sign(msft_w)
+
+
+# --- MultiFactorStrategy tests (Task 13) ---
+
+from strategies.multi_factor import MultiFactorStrategy
+
+
+def test_multifactor_signals_shape(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MultiFactorStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert signals.shape == (len(synthetic_data), len(basic_config.tickers))
+    assert not signals.isnull().any().any()
+
+
+def test_multifactor_warmup_is_zero(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MultiFactorStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals.iloc[:252] == 0.0).all().all()
+
+
+def test_multifactor_weights_bounded(synthetic_data, basic_config):
+    barrier = LookaheadBarrier(synthetic_data)
+    strategy = MultiFactorStrategy(basic_config)
+    signals = strategy.generate_signals(barrier)
+    assert (signals >= -1.0).all().all()
+    assert (signals <= 1.0).all().all()
